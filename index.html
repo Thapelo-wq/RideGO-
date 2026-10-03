@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RideGo</title>
+<style>
+:root{--bg:#fff;--ink:#000;--mut:#6b6b6b;--line:#e3e3e3;--fld:#f1f1f1;--btn:#000;--bi:#fff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root{--bg:#000;--ink:#fff;--mut:#9a9a9a;--line:#2b2b2b;--fld:#1a1a1a;--btn:#fff;--bi:#000}}
+*,*:before,*:after{box-sizing:inherit}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+#app{max-width:480px;margin:0 auto;padding:18px 20px 40px;min-height:100vh}
+h1{font-size:32px;line-height:1.1;margin:16px 0 6px;letter-spacing:-1px;font-weight:800}h2{font-size:17px;margin:22px 0 10px}
+.sub,.sm{color:var(--mut)}.sub{margin:0 0 18px}.sm{font-size:13px}.c{text-align:center}
+.back,.link{background:none;border:0;color:var(--ink);font:inherit;padding:8px 0;cursor:pointer}.link{color:var(--mut);text-decoration:underline}
+.brand{font-size:44px;font-weight:900;letter-spacing:-2px;margin:70px 0 4px}
+.opt{display:block;width:100%;text-align:left;background:var(--fld);border:0;border-radius:16px;padding:20px;margin-bottom:12px;color:var(--ink);font:inherit;cursor:pointer}
+.opt b{display:block;font-size:19px}.opt span{color:var(--mut);font-size:14px}
+label{display:block;font-weight:600;margin:14px 0 7px}
+input,select{width:100%;background:var(--fld);color:var(--ink);border:2px solid transparent;border-radius:12px;padding:15px;font:inherit;font-size:16px}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.btn{width:100%;background:var(--btn);color:var(--bi);border:0;border-radius:12px;padding:16px;font:inherit;font-size:16px;font-weight:700;margin-top:20px;cursor:pointer}
+.btn.s{padding:11px 14px;margin:0;width:auto;font-size:14px}.btn.o{background:var(--fld);color:var(--ink)}
+.err{font-size:14px;margin:10px 0 0;font-weight:600}
+.sug{border:1px solid var(--line);border-radius:12px;margin-top:4px;overflow:hidden}
+.sug button{display:block;width:100%;text-align:left;background:var(--bg);color:var(--ink);border:0;border-bottom:1px solid var(--line);padding:12px 14px;font:inherit;cursor:pointer}
+.card{border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:12px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.big{font-size:30px;font-weight:800;letter-spacing:-1px}
+.tag{display:inline-block;border-radius:99px;padding:4px 12px;font-size:12px;font-weight:700;background:var(--btn);color:var(--bi)}
+.bub{background:var(--fld);border-radius:14px;padding:10px 14px;margin:6px 0;max-width:85%}.bub.me{background:var(--btn);color:var(--bi);margin-left:auto}
+.gap{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}.gap input{flex:1;min-width:90px;padding:11px}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/dist/umd/supabase.min.js"></script>
+</head><body><div id="app"></div>
+<script>
+const sb=supabase.createClient('https://vqrwgbpiyvsjqhnrtsmw.supabase.co','sb_publishable_HkXsQJjuJFW647mU0mQbAA_9qqaT2KZ');
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const CC={ZA:['South Africa','ZAR'],NG:['Nigeria','NGN'],KE:['Kenya','KES'],GH:['Ghana','GHS'],US:['United States','USD'],GB:['United Kingdom','GBP'],IN:['India','INR'],AE:['UAE','AED'],DE:['Germany','EUR'],BR:['Brazil','BRL'],AU:['Australia','AUD'],CA:['Canada','CAD']};
+const TZ={'Africa/Johannesburg':'ZA','Africa/Lagos':'NG','Africa/Nairobi':'KE','Africa/Accra':'GH','America/New_York':'US','America/Chicago':'US','America/Denver':'US','America/Los_Angeles':'US','Europe/London':'GB','Asia/Kolkata':'IN','Asia/Calcutta':'IN','Asia/Dubai':'AE','Europe/Berlin':'DE','Europe/Paris':'DE','America/Sao_Paulo':'BR','Australia/Sydney':'AU','America/Toronto':'CA'};
+const PL={ZA:['Sandton City, Johannesburg','OR Tambo Airport','Bloemfontein CBD','UFS Bloemfontein Campus','Mall of Africa, Midrand','V&A Waterfront, Cape Town'],NG:['Ikeja City Mall, Lagos','Murtala Muhammed Airport','Victoria Island, Lagos','Wuse Market, Abuja'],KE:['Nairobi CBD','JKIA Airport','Westlands, Nairobi'],GH:['Accra Mall','Kotoka Airport'],US:['Times Square, New York','JFK Airport','LAX Airport'],GB:['Heathrow Airport',"King's Cross, London"],IN:['Connaught Place, Delhi','Mumbai Airport'],AE:['Dubai Mall','Dubai Airport T3']};
+function detect(){let c='';try{c=TZ[Intl.DateTimeFormat().resolvedOptions().timeZone]||''}catch(e){}if(!c){const r=(navigator.language||'').split('-')[1];if(r&&CC[r.toUpperCase()])c=r.toUpperCase()}return c||'ZA'}
+const money=(n,c)=>{try{return new Intl.NumberFormat(undefined,{style:'currency',currency:c,maximumFractionDigits:2}).format(n)}catch(e){return c+' '+(+n).toFixed(2)}};
+let me=null,role=null,mode='up',screen='welcome',f={},msg='',R=[],B=[],J=null,MB=[],busy=false;
+const go=s=>{screen=s;msg='';render()};
+const fld=(id,l,ph,t='text')=>`<label for="${id}">${l}</label><input id="${id}" type="${t}" placeholder="${ph}" value="${esc(f[id]||'')}" autocomplete="${t==='password'?'current-password':'off'}">`;
+async function authGo(){const email=$('e').value.trim(),pw=$('pw').value;f={...f,e:email};
+if(mode==='up'){const n=$('n').value.trim(),p=$('p').value.trim(),c=$('cc').value;f={...f,n,p,cc:c};
+if(n.length<2||p.replace(/\D/g,'').length<9||pw.length<6){msg='Enter your name, a valid phone number and a password of 6+ characters.';return render()}
+const{data,error}=await sb.auth.signUp({email,password:pw,options:{data:{name:n,phone:p,country:c,currency:CC[c][1],role}}});
+if(error){msg=error.message;return render()}
+if(!data.session){msg='Check your email to confirm your account, then sign in.';mode='in';return render()}
+return start(data.user)}
+const{data,error}=await sb.auth.signInWithPassword({email,password:pw});
+if(error){msg=error.message;return render()}start(data.user)}
+async function start(u){let{data:p}=await sb.from('profiles').select('*').eq('id',u.id).maybeSingle();
+const m=u.user_metadata||{};
+if(!p&&m.role){const r=await sb.from('profiles').insert({id:u.id,name:m.name,phone:m.phone,country:m.country,currency:m.currency,role:m.role}).select().single();p=r.data}
+if(!p){msg='Account profile missing. Please sign up again.';return go('welcome')}
+me=p;await refresh();go(me.role==='driver'?'dHome':'rHome')}
+async function signOut(){await sb.auth.signOut();me=null;f={};go('welcome')}
+async function refresh(){if(!me)return;
+if(me.role==='rider'){const{data}=await sb.from('rides').select('*').eq('rider_id',me.id).in('status',['open','accepted']).order('created_at',{ascending:false}).limit(1);R=data||[];B=[];if(R[0]){const b=await sb.from('bids').select('*').eq('ride_id',R[0].id).order('created_at');B=b.data||[]}}
+else{const a=await sb.from('rides').select('*').eq('status','open').order('created_at',{ascending:false}).limit(30);R=a.data||[];const j=await sb.from('rides').select('*').eq('driver_id',me.id).eq('status','accepted').limit(1);J=(j.data||[])[0]||null;const b=await sb.from('bids').select('*').eq('driver_id',me.id);MB=b.data||[]}}
+async function run(p){const{error}=await p;msg=error?error.message:'';await refresh();render()}
+function sugg(id){const q=$(id).value.toLowerCase(),b=$('s_'+id);const l=(PL[me.country]||[]).filter(x=>!q||x.toLowerCase().includes(q)).slice(0,5);b.innerHTML=l.length?`<div class="sug">${l.map(x=>`<button type="button" onclick="pick('${id}',this.textContent)">${esc(x)}</button>`).join('')}</div>`:''}
+function pick(id,v){$(id).value=v;$('s_'+id).innerHTML=''}
+function send(){const a=$('from').value.trim(),b=$('to').value.trim(),o=+$('offer').value;f={...f,from:a,to:b,offer:$('offer').value};
+if(a.length<2||b.length<2||!(o>0)){msg='Enter pickup, destination and a price above 0.';return render()}
+f={};run(sb.from('rides').insert({rider_id:me.id,rider_name:me.name,from_place:a,to_place:b,rider_offer:o,country:me.country,currency:me.currency}))}
+const accOffer=r=>run(sb.rpc('take_ride',{p_ride:r.id,p_price:r.rider_offer}));
+function bidUp(rid){const r=R.find(x=>x.id===rid),a=+$('b_'+rid).value;if(!(a>r.rider_offer)){msg='Bid must be above '+money(r.rider_offer,r.currency);return render()}
+run(sb.from('bids').upsert({ride_id:rid,driver_id:me.id,driver_name:me.name,amount:a,driver_earnings:+(a*.85).toFixed(2),counter:null},{onConflict:'ride_id,driver_id'}))}
+const rAcc=b=>run(sb.from('rides').update({status:'accepted',final_price:b.amount,commission:+(b.amount*.15).toFixed(2),driver_id:b.driver_id,driver_name:b.driver_name}).eq('id',b.ride_id).eq('status','open'));
+function rCtr(bid){const b=B.find(x=>x.id===bid),a=+$('c_'+bid).value;if(!(a>0&&a<b.amount)){msg='Counter must be below the bid.';return render()}run(sb.from('bids').update({counter:a}).eq('id',bid))}
+const dCtr=(rid,price)=>run(sb.rpc('take_ride',{p_ride:rid,p_price:price}));
+const setS=(id,s)=>run(sb.from('rides').update({status:s}).eq('id',id));
+const bi=i=>id=>B.find(x=>x.id===id);
+function render(){let h='';const E=msg?`<p class="err">${esc(msg)}</p>`:'';
+if(screen==='welcome'){h=`<div class="brand">RideGo</div><p class="sub">Name your price. Ride anywhere.</p><button class="opt" onclick="role='rider';mode='up';go('reg')"><b>I am a Rider</b><span>Book trips and suggest your price</span></button><button class="opt" onclick="role='driver';mode='up';go('reg')"><b>I am a Driver</b><span>Earn money driving riders</span></button><p class="c"><button class="link" onclick="mode='in';go('reg')">I already have an account</button></p>${E}`}
+else if(screen==='reg'){const c=f.cc||detect();h=`<button class="back" onclick="go('welcome')">&larr; Back</button><h1>${mode==='up'?(role==='rider'?'Rider':'Driver')+' sign-up':'Sign in'}</h1><p class="sub">${mode==='up'?'Your country and currency are detected from your device.':'Welcome back.'}</p>${mode==='up'?fld('n','Full name','Your name')+fld('p','Phone number','+27 71 000 0000','tel'):''}${fld('e','Email','you@example.com','email')}${fld('pw','Password','6+ characters','password')}${mode==='up'?`<label for="cc">Country</label><select id="cc" onchange="f.cc=this.value;$('cur').textContent='Currency: '+CC[this.value][1]">${Object.keys(CC).map(k=>`<option value="${k}" ${k===c?'selected':''}>${CC[k][0]}</option>`).join('')}</select><p class="sm" id="cur">Currency: ${CC[c][1]}</p>`:''}${E}<button class="btn" onclick="authGo()">${mode==='up'?'Create '+(role==='rider'?'Rider':'Driver')+' Account':'Sign in'}</button><p class="c"><button class="link" onclick="mode=mode==='up'?'in':'up';go('reg')">${mode==='up'?'I already have an account':'Create a new account'}</button></p>`}
+else if(screen==='rHome'){const r=R[0];h=`<h1>Where to?</h1><p class="sub">${esc(me.name.split(' ')[0])}, prices are in ${me.currency}.</p>`;
+if(r){h+=`<div class="card"><div class="row"><span class="tag">${r.status==='accepted'?'Driver on the way':'Waiting for bids'}</span><span class="big">${money(r.final_price||r.rider_offer,r.currency)}</span></div><p><b>${esc(r.from_place)}</b><br><span class="sm">to</span> <b>${esc(r.to_place)}</b></p>${r.status==='accepted'?`<p class="sm">Driver: ${esc(r.driver_name)}</p>`:''}</div>`;
+if(r.status==='open'){h+=`<h2>Negotiation</h2><div class="bub me">You offered ${money(r.rider_offer,r.currency)}</div>`+(B.length?B.map(b=>`<div class="bub">${esc(b.driver_name)} bids ${money(b.amount,r.currency)}</div>${b.counter?`<div class="bub me">You countered ${money(b.counter,r.currency)}</div>`:''}<div class="gap"><button class="btn s" onclick="rAcc(B.find(x=>x.id==='${b.id}'))">Accept ${money(b.amount,r.currency)}</button><input id="c_${b.id}" type="number" min="1" placeholder="Counter"><button class="btn s o" onclick="rCtr('${b.id}')">Counter</button></div>`).join(''):'<p class="sm">No bids yet. Drivers nearby can accept or bid higher.</p>')}
+h+=`${E}<button class="btn o" onclick="setS('${r.id}','cancelled')">Cancel ride</button>`}
+else h+=`${fld('from','Pickup','Search a place')}<div id="s_from"></div>${fld('to','Destination','Search a place')}<div id="s_to"></div>${fld('offer','Suggest your price ('+me.currency+')','e.g. 80','number')}${E}<button class="btn" onclick="send()">Send Request</button>`;
+h+=`<p class="c"><button class="link" onclick="signOut()">Sign out</button></p>`}
+else if(screen==='dHome'){h=`<h1>Ride requests</h1><p class="sub">Open requests in ${CC[me.country][0]} (${me.currency}).</p>`;
+if(J)h+=`<div class="card"><div class="row"><span class="tag">In progress</span><span class="big">${money(J.final_price,J.currency)}</span></div><p><b>${esc(J.from_place)}</b><br><span class="sm">to</span> <b>${esc(J.to_place)}</b></p><p class="sm">Your earnings ${money(J.final_price*.85,J.currency)}. RideGo fee ${money(J.commission,J.currency)}.</p><button class="btn" style="margin-top:8px" onclick="setS('${J.id}','done')">Complete ride</button></div>`;
+h+=E+(R.length?R.map(r=>{const b=MB.find(x=>x.ride_id===r.id);return`<div class="card"><div class="row"><b>${esc(r.from_place)}</b><span class="sm">to ${esc(r.to_place)}</span></div><p class="sm" style="margin:6px 0">Rider offer</p><div class="big">${money(r.rider_offer,r.currency)}</div><p style="margin:8px 0 0"><b>Your earnings ${money(r.rider_offer*.85,r.currency)}</b><br><span class="sm">RideGo fee (15%) ${money(r.rider_offer*.15,r.currency)}</span></p>${b?`<div class="bub me">Your bid ${money(b.amount,r.currency)}</div>${b.counter?`<div class="bub">Rider countered ${money(b.counter,r.currency)}</div>`:''}`:''}<div class="gap">${J?'':`<button class="btn s" onclick="accOffer(R.find(x=>x.id==='${r.id}'))">Accept</button>${b&&b.counter?`<button class="btn s" onclick="dCtr('${r.id}',${b.counter})">Accept ${money(b.counter,r.currency)}</button>`:''}`}<input id="b_${r.id}" type="number" min="1" placeholder="Your bid"><button class="btn s o" onclick="bidUp('${r.id}')">Bid Higher</button></div></div>`}).join(''):'<p class="sm">No requests right now. This page checks for new ones automatically.</p>')+`<p class="c"><button class="link" onclick="signOut()">Sign out</button></p>`}
+$('app').innerHTML=h;
+['from','to'].forEach(id=>{const e=$(id);if(e){e.addEventListener('input',()=>sugg(id));e.addEventListener('focus',()=>sugg(id))}})}
+setInterval(async()=>{if(!me||busy||(screen!=='rHome'&&screen!=='dHome'))return;const t=document.activeElement&&document.activeElement.tagName;if(t==='INPUT'||t==='SELECT')return;busy=true;try{await refresh();render()}catch(e){}busy=false},4000);
+(async()=>{render();try{const{data:{session}}=await sb.auth.getSession();if(session)await start(session.user)}catch(e){}})();
+</script></body></html>
