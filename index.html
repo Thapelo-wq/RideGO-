@@ -68,6 +68,13 @@ const{data,error}=await sb.auth.signInWithPassword({email,password:pw});
 if(error){msg=error.message;return render()}start(data.user)}
 async function verify(){cap();const t=(f.code||'').trim();if(t.length<4){msg='Enter the code from the SMS.';return render()}
 const{data,error}=await sb.auth.verifyOtp({phone:f.phone,token:t,type:'sms'});if(error){msg=error.message;return render()}start(data.user)}
+async function sendReset(){cap();const email=(f.e||'').trim();if(!email){msg='Enter your email.';return render()}
+const{error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
+msg=error?error.message:'If that email has an account, a reset link is on its way. Check your inbox and spam folder.';render()}
+async function setPw(){cap();const p=f.pw||'';if(p.length<6){msg='Use 6 or more characters.';return render()}
+const{error}=await sb.auth.updateUser({password:p});if(error){msg=error.message;return render()}
+try{history.replaceState(null,'',location.pathname)}catch(e){}
+f={};const{data:{user}}=await sb.auth.getUser();await start(user)}
 async function start(u){let{data:p}=await sb.from('profiles').select('*').eq('id',u.id).maybeSingle();
 const m=u.user_metadata||{};
 if(!p&&m.role){const r=await sb.from('profiles').insert({id:u.id,name:m.name,phone:m.phone,country:m.country,currency:m.currency,role:m.role}).select().single();p=r.data}
@@ -98,7 +105,9 @@ h=`<button class="back" onclick="go('welcome')">&larr; Back</button><h1>${up?r+'
 +(up?`<label>I am a</label><div class="seg"><button class="${r==='Rider'?'on':''}" onclick="setRole('rider')">Rider</button><button class="${r==='Driver'?'on':''}" onclick="setRole('driver')">Driver</button></div>`+fld('n','Full name','Your name'):'')
 +(np?`<label for="cc">Country</label><select id="cc" onchange="f.cc=this.value;$('dial').textContent=DIAL[this.value];if($('cur'))$('cur').textContent='Currency: '+CC[this.value][1]">${Object.keys(CC).map(k=>`<option value="${k}" ${k===c?'selected':''}>${CC[k][0]} (${DIAL[k]})</option>`).join('')}</select>`+(up?`<p class="sm" id="cur">Currency: ${CC[c][1]}</p>`:'')+`<label for="p">Phone number</label><div class="ph"><span class="dial" id="dial">${DIAL[c]}</span><input id="p" type="tel" inputmode="tel" placeholder="71 000 0000" value="${esc(f.p||'')}" autocomplete="off"></div>`:'')
 +(USE_OTP?'':fld('e','Email','you@example.com','email')+fld('pw','Password','6+ characters','password'))
-+E+`<button class="btn" onclick="authGo()">${USE_OTP?'Send code':(up?'Create '+r+' Account':'Sign in')}</button><p class="c"><button class="link" onclick="cap();mode=mode==='up'?'in':'up';role=role||'rider';go('reg')">${up?'I already have an account':'Create a new account'}</button></p>`}
++E+`<button class="btn" onclick="authGo()">${USE_OTP?'Send code':(up?'Create '+r+' Account':'Sign in')}</button><p class="c"><button class="link" onclick="cap();mode=mode==='up'?'in':'up';role=role||'rider';go('reg')">${up?'I already have an account':'Create a new account'}</button></p>${!USE_OTP&&!up?`<p class="c"><button class="link" onclick="cap();go('forgot')">Forgot password?</button></p>`:''}`}
+else if(screen==='forgot'){h=`<button class="back" onclick="cap();mode='in';go('reg')">&larr; Back</button><h1>Reset password</h1><p class="sub">Enter your email and we will send you a link to set a new password.</p>${fld('e','Email','you@example.com','email')}${E}<button class="btn" onclick="sendReset()">Send reset link</button>`}
+else if(screen==='newpw'){h=`<h1>New password</h1><p class="sub">Choose a new password for your account.</p>${fld('pw','New password','6+ characters','password')}${E}<button class="btn" onclick="setPw()">Save password</button>`}
 else if(screen==='otp'){h=`<button class="back" onclick="go('reg')">&larr; Back</button><h1>Enter code</h1><p class="sub">We sent a code by SMS to ${esc(f.phone)}.</p>${fld('code','6-digit code','123456','tel')}${E}<button class="btn" onclick="verify()">Verify and continue</button><p class="c"><button class="link" onclick="authGo()">Resend code</button></p>`}
 else if(screen==='rHome'){const r=R[0];h=`<h1>Where to?</h1><p class="sub">${esc(me.name.split(' ')[0])}, prices are in ${me.currency}.</p>`;
 if(r){h+=`<div class="card"><div class="row"><span class="tag">${r.status==='accepted'?'Driver on the way':'Waiting for bids'}</span><span class="big">${money(r.final_price||r.rider_offer,r.currency)}</span></div><p><b>${esc(r.from_place)}</b><br><span class="sm">to</span> <b>${esc(r.to_place)}</b></p>${r.status==='accepted'?`<p class="sm">Driver: ${esc(r.driver_name)}</p>`:''}</div>`;
@@ -112,5 +121,7 @@ h+=E+(R.length?R.map(r=>{const b=MB.find(x=>x.ride_id===r.id);return`<div class=
 $('app').innerHTML=h;
 ['from','to'].forEach(id=>{const e=$(id);if(e){e.addEventListener('input',()=>sugg(id));e.addEventListener('focus',()=>sugg(id))}})}
 setInterval(async()=>{if(!me||busy||(screen!=='rHome'&&screen!=='dHome'))return;const t=document.activeElement&&document.activeElement.tagName;if(t==='INPUT'||t==='SELECT')return;busy=true;try{await refresh();render()}catch(e){}busy=false},4000);
-(async()=>{render();try{const{data:{session}}=await sb.auth.getSession();if(session)await start(session.user)}catch(e){}})();
+const REC=/type=recovery/.test(location.hash+location.search);
+sb.auth.onAuthStateChange(ev=>{if(ev==='PASSWORD_RECOVERY'){screen='newpw';render()}});
+(async()=>{if(REC)screen='newpw';render();try{const{data:{session}}=await sb.auth.getSession();if(session&&!REC)await start(session.user)}catch(e){}})();
 </script></body></html>
