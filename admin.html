@@ -26,13 +26,14 @@ const sb=supabase.createClient('https://vqrwgbpiyvsjqhnrtsmw.supabase.co','sb_pu
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=(n,c)=>{try{return new Intl.NumberFormat(undefined,{style:'currency',currency:c}).format(n)}catch(e){return c+' '+(+n).toFixed(2)}};
-let rides=[],users=[],cf='ALL',msg='',ok=false;
+let rides=[],users=[],rv=[],cf='ALL',msg='',ok=false;
 function login(){return `<h1>RideGo Admin</h1><p class="sm">Authorised access only.</p><label for="e">Email</label><input id="e" type="email" autocomplete="username"><label for="pw">Password</label><input id="pw" type="password" autocomplete="current-password">${msg?`<p><b>${esc(msg)}</b></p>`:''}<button class="btn" onclick="signIn()">Sign in</button>`}
 async function signIn(){msg='';const{error}=await sb.auth.signInWithPassword({email:$('e').value.trim(),password:$('pw').value});if(error){msg=error.message;return draw()}await load()}
 async function load(){const a=await sb.rpc('is_admin');if(a.error||a.data!==true){await sb.auth.signOut();ok=false;msg='This account is not an admin.';return draw()}
 const r=await sb.from('rides').select('*').order('created_at',{ascending:false}),u=await sb.from('profiles').select('*').order('created_at',{ascending:false});
-rides=r.data||[];users=u.data||[];ok=true;msg='';draw()}
-const tbl=a=>a.length?`<div class="tw"><table><tr><th>Name</th><th>Phone</th><th>Email</th><th>Country</th><th>Joined</th></tr>${a.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.phone)}</td><td>${esc(x.email||'-')}</td><td>${esc(x.country)}</td><td>${x.created_at?new Date(x.created_at).toLocaleDateString():''}</td></tr>`).join('')}</table></div>`:'<p class="sm">None yet.</p>';
+const v=await sb.from('reviews').select('driver_id,stars');rv=v.data||[];rides=r.data||[];users=u.data||[];ok=true;msg='';draw()}
+const rate=id=>{const g=rv.filter(y=>y.driver_id===id);return g.length?'★ '+(g.reduce((t,y)=>t+y.stars,0)/g.length).toFixed(1)+' ('+g.length+')':'-'};
+const tbl=(a,dr)=>a.length?`<div class="tw"><table><tr><th>Name</th><th>Phone</th><th>Email</th><th>Country</th>${dr?'<th>Rating</th>':''}<th>Joined</th></tr>${a.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.phone)}</td><td>${x.email&&!x.email.endsWith('@ridego.app')?esc(x.email):'phone sign-up'}</td><td>${esc(x.country)}</td>${dr?'<td>'+rate(x.id)+'</td>':''}<td>${x.created_at?new Date(x.created_at).toLocaleDateString():''}</td></tr>`).join('')}</table></div>`:'<p class="sm">None yet.</p>';
 function draw(){if(!ok){$('app').innerHTML=login();return}
 const rs=rides.filter(r=>cf==='ALL'||r.country===cf),us=users.filter(x=>cf==='ALL'||x.country===cf),paid=rs.filter(r=>r.status==='accepted'||r.status==='done'),by={};
 paid.forEach(r=>by[r.currency]=(by[r.currency]||0)+Number(r.commission));
@@ -42,7 +43,7 @@ $('app').innerHTML=`<h1>Dashboard</h1><label for="cf">Country</label><select id=
 <div class="cols" style="margin-top:16px"><div class="card"><span class="sm">Total rides</span><div class="big">${rs.length}</div></div><div class="card"><span class="sm">Accepted or done</span><div class="big">${paid.length}</div></div></div>
 <div class="card"><span class="sm">RideGo 15% earnings</span>${Object.keys(by).length?Object.keys(by).map(c=>`<div class="big">${money(by[c],c)}</div>`).join(''):'<div class="big">0</div>'}<span class="sm">Totals are kept per currency. No exchange rates are applied.</span></div>
 <h2>Commission owed by drivers</h2>${Object.keys(ow).length?`<div class="tw"><table><tr><th>Driver</th><th>Rides</th><th>Owed</th></tr>${Object.keys(ow).map(k=>{const[nm,c]=k.split('|');return`<tr><td>${esc(nm)}</td><td>${ow[k].n}</td><td>${money(ow[k].t,c)}</td></tr>`}).join('')}</table></div>`:'<p class="sm">No completed rides yet.</p>'}
-<h2>Drivers (${us.filter(x=>x.role==='driver').length})</h2>${tbl(us.filter(x=>x.role==='driver'))}<h2>Riders (${us.filter(x=>x.role==='rider').length})</h2>${tbl(us.filter(x=>x.role==='rider'))}
+<h2>Drivers (${us.filter(x=>x.role==='driver').length})</h2>${tbl(us.filter(x=>x.role==='driver'),true)}<h2>Riders (${us.filter(x=>x.role==='rider').length})</h2>${tbl(us.filter(x=>x.role==='rider'))}
 <h2>Recent rides</h2><div class="tw"><table><tr><th>From</th><th>To</th><th>Offer</th><th>Final</th><th>Status</th></tr>${rs.slice(0,30).map(r=>`<tr><td>${esc(r.from_place)}</td><td>${esc(r.to_place)}</td><td>${money(r.rider_offer,r.currency)}</td><td>${r.final_price?money(r.final_price,r.currency):'-'}</td><td>${esc(r.status)}</td></tr>`).join('')}</table></div>
 <button class="btn" onclick="load()">Refresh</button><p style="text-align:center"><button class="link" onclick="sb.auth.signOut().then(()=>{ok=false;draw()})">Sign out</button></p>`}
 setInterval(()=>{if(ok&&document.activeElement.tagName!=='SELECT')load()},15000);
