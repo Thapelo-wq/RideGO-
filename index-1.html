@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RideGo</title>
+<style>
+:root{--bg:#fff;--ink:#000;--mut:#6b6b6b;--line:#e3e3e3;--fld:#f1f1f1;--btn:#000;--bi:#fff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root{--bg:#000;--ink:#fff;--mut:#9a9a9a;--line:#2b2b2b;--fld:#1a1a1a;--btn:#fff;--bi:#000}}
+*,*:before,*:after{box-sizing:inherit}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+#app{max-width:480px;margin:0 auto;padding:18px 20px 40px;min-height:100vh}
+h1{font-size:32px;line-height:1.1;margin:16px 0 6px;letter-spacing:-1px;font-weight:800}h2{font-size:17px;margin:22px 0 10px}
+.sub,.sm{color:var(--mut)}.sub{margin:0 0 18px}.sm{font-size:13px}.c{text-align:center}
+.back,.link{background:none;border:0;color:var(--ink);font:inherit;padding:8px 0;cursor:pointer}.link{color:var(--mut);text-decoration:underline}
+.brand{font-size:44px;font-weight:900;letter-spacing:-2px;margin:70px 0 4px}
+.opt{display:block;width:100%;text-align:left;background:var(--fld);border:0;border-radius:16px;padding:20px;margin-bottom:12px;color:var(--ink);font:inherit;cursor:pointer}
+.opt b{display:block;font-size:19px}.opt span{color:var(--mut);font-size:14px}
+label{display:block;font-weight:600;margin:14px 0 7px}
+input,select{width:100%;background:var(--fld);color:var(--ink);border:2px solid transparent;border-radius:12px;padding:15px;font:inherit;font-size:16px}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.btn{width:100%;background:var(--btn);color:var(--bi);border:0;border-radius:12px;padding:16px;font:inherit;font-size:16px;font-weight:700;margin-top:20px;cursor:pointer}
+.btn.s{padding:11px 14px;margin:0;width:auto;font-size:14px}.btn.o{background:var(--fld);color:var(--ink)}
+.err{font-size:14px;margin:10px 0 0;font-weight:600}
+.sug{border:1px solid var(--line);border-radius:12px;margin-top:4px;overflow:hidden}
+.sug button{display:block;width:100%;text-align:left;background:var(--bg);color:var(--ink);border:0;border-bottom:1px solid var(--line);padding:12px 14px;font:inherit;cursor:pointer}
+.card{border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:12px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.big{font-size:30px;font-weight:800;letter-spacing:-1px}
+.tag{display:inline-block;border-radius:99px;padding:4px 12px;font-size:12px;font-weight:700;background:var(--btn);color:var(--bi)}
+.bub{background:var(--fld);border-radius:14px;padding:10px 14px;margin:6px 0;max-width:85%}.bub.me{background:var(--btn);color:var(--bi);margin-left:auto}
+.seg{display:flex;gap:8px}.seg button{flex:1;padding:12px;border-radius:12px;border:2px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;font-weight:700;cursor:pointer}.seg button.on{background:var(--btn);color:var(--bi);border-color:var(--btn)}
+.ph{display:flex;gap:8px}.dial{background:var(--fld);border-radius:12px;padding:15px;font-weight:700;display:grid;place-items:center;min-width:72px}.ph input{flex:1}
+.chat{max-height:260px;overflow-y:auto}
+#mapbox{height:300px;border-radius:16px;overflow:hidden;border:1px solid var(--line);margin-top:6px}
+#mapbox.sel::after{content:'';position:absolute;left:50%;top:50%;width:16px;height:16px;margin:-8px 0 0 -8px;border:3px solid #000;border-radius:50%;background:#fff;z-index:1000;pointer-events:none}
+a.btn{display:inline-block;text-align:center;text-decoration:none}
+.gap{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}.gap input{flex:1;min-width:90px;padding:11px}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/dist/umd/supabase.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+</head><body><div id="app"></div>
+<script>
+const sb=supabase.createClient('https://vqrwgbpiyvsjqhnrtsmw.supabase.co','sb_publishable_HkXsQJjuJFW647mU0mQbAA_9qqaT2KZ');
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const CC={ZA:['South Africa','ZAR'],NG:['Nigeria','NGN'],KE:['Kenya','KES'],GH:['Ghana','GHS'],US:['United States','USD'],GB:['United Kingdom','GBP'],IN:['India','INR'],AE:['UAE','AED'],DE:['Germany','EUR'],BR:['Brazil','BRL'],AU:['Australia','AUD'],CA:['Canada','CAD']};
+const USE_OTP=false; // change to true after an SMS provider is set up in Supabase
+const DIAL={ZA:'+27',NG:'+234',KE:'+254',GH:'+233',US:'+1',GB:'+44',IN:'+91',AE:'+971',DE:'+49',BR:'+55',AU:'+61',CA:'+1'};
+const TZ={'Africa/Johannesburg':'ZA','Africa/Lagos':'NG','Africa/Nairobi':'KE','Africa/Accra':'GH','America/New_York':'US','America/Chicago':'US','America/Denver':'US','America/Los_Angeles':'US','Europe/London':'GB','Asia/Kolkata':'IN','Asia/Calcutta':'IN','Asia/Dubai':'AE','Europe/Berlin':'DE','Europe/Paris':'DE','America/Sao_Paulo':'BR','Australia/Sydney':'AU','America/Toronto':'CA'};
+const PL={ZA:['Sandton City, Johannesburg','OR Tambo Airport','Bloemfontein CBD','UFS Bloemfontein Campus','Mall of Africa, Midrand','V&A Waterfront, Cape Town'],NG:['Ikeja City Mall, Lagos','Murtala Muhammed Airport','Victoria Island, Lagos','Wuse Market, Abuja'],KE:['Nairobi CBD','JKIA Airport','Westlands, Nairobi'],GH:['Accra Mall','Kotoka Airport'],US:['Times Square, New York','JFK Airport','LAX Airport'],GB:['Heathrow Airport',"King's Cross, London"],IN:['Connaught Place, Delhi','Mumbai Airport'],AE:['Dubai Mall','Dubai Airport T3']};
+function detect(){let c='';try{c=TZ[Intl.DateTimeFormat().resolvedOptions().timeZone]||''}catch(e){}if(!c){const r=(navigator.language||'').split('-')[1];if(r&&CC[r.toUpperCase()])c=r.toUpperCase()}return c||'ZA'}
+const money=(n,c)=>{try{return new Intl.NumberFormat(undefined,{style:'currency',currency:c,maximumFractionDigits:2}).format(n)}catch(e){return c+' '+(+n).toFixed(2)}};
+let me=null,role=null,mode='up',screen='welcome',f={},msg='',R=[],B=[],J=null,MB=[],MS=[],DL=null,busy=false;
+const go=s=>{screen=s;msg='';render()};
+const fld=(id,l,ph,t='text')=>`<label for="${id}">${l}</label><input id="${id}" type="${t}" placeholder="${ph}" value="${esc(f[id]||'')}" autocomplete="${t==='password'?'current-password':'off'}">`;
+const cap=()=>['n','p','e','pw','cc','code'].forEach(id=>{const x=$(id);if(x)f[id]=x.value});
+const setRole=r=>{cap();role=r;render()};
+async function authGo(){role=role||'rider';cap();const c=f.cc||detect(),n=(f.n||'').trim(),pd=(f.p||'').replace(/\D/g,'').replace(/^0+/,''),phone=DIAL[c]+pd,pw=f.pw||'',up=mode==='up',ph=via==='phone';let email;
+if(ph){if(pd.length<7){msg='Enter a valid phone number.';return render()}email=phoneEmail(c,pd)}else{email=(f.e||'').trim();if(!email){msg='Enter your email.';return render()}}
+if(pw.length<6){msg='Use a password of 6 or more characters.';return render()}
+if(up){if(n.length<2||pd.length<7){msg='Enter your name and a valid phone number.';return render()}
+const{data,error}=await sb.auth.signUp({email,password:pw,options:{data:{name:n,phone,country:c,currency:CC[c][1],role}}});
+if(error){msg=/already/i.test(error.message)?(ph?'This phone number is already registered. Try signing in.':'This email is already registered. Try signing in.'):error.message;return render()}
+if(!data.session){msg=ph?'Account created but it needs confirming. Please contact RideGo support.':'Check your email to confirm your account, then sign in.';mode='in';return render()}
+return start(data.user)}
+const{data,error}=await sb.auth.signInWithPassword({email,password:pw});
+if(error){msg=error.message==='Invalid login credentials'?(ph?'Wrong phone number or password.':'Wrong email or password.'):error.message;return render()}
+start(data.user)}
+async function verify(){cap();const t=(f.code||'').trim();if(t.length<4){msg='Enter the code from the SMS.';return render()}
+const{data,error}=await sb.auth.verifyOtp({phone:f.phone,token:t,type:'sms'});if(error){msg=error.message;return render()}start(data.user)}
+async function sendReset(){cap();const email=(f.e||'').trim();if(!email){msg='Enter your email.';return render()}
+const{error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
+msg=error?error.message:'If that email has an account, a reset link is on its way. Check your inbox and spam folder.';render()}
+async function setPw(){cap();const p=f.pw||'';if(p.length<6){msg='Use 6 or more characters.';return render()}
+const{error}=await sb.auth.updateUser({password:p});if(error){msg=error.message;return render()}
+try{history.replaceState(null,'',location.pathname)}catch(e){}
+f={};const{data:{user}}=await sb.auth.getUser();await start(user)}
+let pend=null;
+async function finish(){cap();role=role||'rider';const c=f.cc||detect(),n=(f.n||'').trim(),pd=(f.p||'').replace(/\D/g,'').replace(/^0+/,'');
+if(n.length<2||pd.length<7){msg='Enter your name and a valid phone number.';return render()}
+const{data,error}=await sb.from('profiles').insert({id:pend.id,name:n,phone:DIAL[c]+pd,country:c,currency:CC[c][1],role}).select().single();
+if(error){msg=error.message;return render()}
+me=data;msg='';await refresh();go(me.role==='driver'?'dHome':'rHome')}
+async function start(u){let{data:p}=await sb.from('profiles').select('*').eq('id',u.id).maybeSingle();
+const m=u.user_metadata||{};
+if(!p&&m.role){const r=await sb.from('profiles').insert({id:u.id,name:m.name,phone:m.phone,country:m.country,currency:m.currency,role:m.role}).select().single();p=r.data;if(r.error)msg=r.error.message}
+if(!p){pend=u;role=role||'rider';screen='complete';return render()}
+me=p;curCC=null;await refresh();go(me.role==='driver'?'dHome':'rHome')}
+async function signOut(){await sb.auth.signOut();me=null;f={};go('welcome')}
+async function refresh(){if(!me)return;
+if(me.role==='rider'){const{data}=await sb.from('rides').select('*').eq('rider_id',me.id).in('status',['open','accepted']).order('created_at',{ascending:false}).limit(1);R=data||[];B=[];if(R[0]){const b=await sb.from('bids').select('*').eq('ride_id',R[0].id).order('created_at');B=b.data||[]}MS=[];if(R[0]&&R[0].status==='accepted'){const m=await sb.from('messages').select('*').eq('ride_id',R[0].id).order('created_at');MS=m.data||[];const d=await sb.from('driver_locations').select('*').eq('ride_id',R[0].id).maybeSingle();DL=d.data||null}else DL=null;await loadRider()}
+else{const a=await sb.from('rides').select('*').eq('status','open').order('created_at',{ascending:false}).limit(30);R=a.data||[];const j=await sb.from('rides').select('*').eq('driver_id',me.id).eq('status','accepted').limit(1);J=(j.data||[])[0]||null;MS=[];if(J){const m=await sb.from('messages').select('*').eq('ride_id',J.id).order('created_at');MS=m.data||[]}const b=await sb.from('bids').select('*').eq('driver_id',me.id);MB=b.data||[];await loadDriver()}}
+async function run(p){const{error}=await p;msg=error?error.message:'';await refresh();render()}
+function sugg(id){const q=$(id).value.toLowerCase(),b=$('s_'+id);const l=(PL[me.country]||[]).filter(x=>!q||x.toLowerCase().includes(q)).slice(0,5);b.innerHTML=l.length?`<div class="sug">${l.map(x=>`<button type="button" onclick="pick('${id}',this.textContent)">${esc(x)}</button>`).join('')}</div>`:''}
+function pick(id,v){$(id).value=v;$('s_'+id).innerHTML=''}
+const CEN={ZA:[-29,25],NG:[9,8],KE:[0.5,38],GH:[7.9,-1],US:[39.5,-98.5],GB:[54,-2],IN:[22,79],AE:[24.4,54.4],DE:[51,10],BR:[-14,-52],AU:[-25,134],CA:[56,-96]};
+let pk=null,ds=null,pm='from',SR=[],gpsErr='',triedGps=false,watchId=null,lastPush=0,myPos=null,mapEl=null,map=null,lay=null,mapKey='';
+const setPoint=(w,pt)=>{if(w==='from')pk=pt;else ds=pt};
+let curCC=null,revCC='';
+async function rev(lat,lng){revCC='';try{const r=await fetch('https://nominatim.openstreetmap.org/reverse?format=json&addressdetails=1&zoom=18&lat='+lat+'&lon='+lng);const j=await r.json();revCC=((j.address&&j.address.country_code)||'').toUpperCase();return (j.display_name||'').split(',').slice(0,3).join(',')}catch(e){return ''}}
+async function onMap(e){if(screen!=='rHome'||R[0])return;const w=pm,pt={lat:e.latlng.lat,lng:e.latlng.lng,label:e.latlng.lat.toFixed(5)+', '+e.latlng.lng.toFixed(5)};setPoint(w,pt);if(w==='from')pm='to';render();const l=await rev(pt.lat,pt.lng);if(w==='from'&&revCC)curCC=revCC;if(l){pt.label=l;if(screen==='rHome'&&!R[0])render()}}
+function useGps(){if(!navigator.geolocation){gpsErr='Location is not available on this device.';return render()}
+gpsErr='Finding your location...';render();
+const ok=async p=>{gpsErr='';const pt={lat:p.coords.latitude,lng:p.coords.longitude,label:'My location'};pk=pt;pm='to';render();const l=await rev(pt.lat,pt.lng);if(revCC)curCC=revCC;if(l){pt.label=l;if(screen==='rHome'&&!R[0])render()}};
+const bad=e=>{gpsErr=e.code===1?'Location is blocked for this site. Tap the lock icon next to the web address, choose Permissions, allow Location, then reload the page and tap Use my location.':e.code===3?'Finding you took too long. Make sure your phone location (GPS) is on, then try again, or set your pickup on the map.':"Could not get your location. Turn on your phone's location, then try again, or set your pickup on the map.";render()};
+navigator.geolocation.getCurrentPosition(ok,e=>{if(e.code===1)return bad(e);navigator.geolocation.getCurrentPosition(ok,bad,{enableHighAccuracy:true,timeout:15000,maximumAge:0})},{enableHighAccuracy:false,timeout:8000,maximumAge:60000})}
+async function setHere(){if(!map)return;const c=map.getCenter(),w=pm,pt={lat:c.lat,lng:c.lng,label:c.lat.toFixed(5)+', '+c.lng.toFixed(5)};setPoint(w,pt);if(w==='from')pm='to';render();const l=await rev(pt.lat,pt.lng);if(w==='from'&&revCC)curCC=revCC;if(l){pt.label=l;if(screen==='rHome'&&!R[0])render()}}
+let qnote='';
+const col=t=>t.toLowerCase().replace(/(.)\1+/g,'$1');
+const vars=q=>{q=q.trim();const w=q.split(/\s+/),d=w.length>1?w.slice(0,-1).join(' '):'',L=w.length>1?[...w].sort((x,y)=>y.length-x.length)[0]:'';return [...new Set([q,col(q),q.slice(0,-2),d,d&&col(d),L,L&&col(L)])].filter(v=>v&&v.length>=3).slice(0,5)};
+const BBOX={ZA:[16.3,-34.9,33,-22],NG:[2.6,4.2,14.7,13.9],KE:[33.9,-4.7,41.9,5.1],GH:[-3.3,4.7,1.2,11.2],US:[-125,24,-66.9,49.5],GB:[-8.7,49.8,1.8,60.9],IN:[68,6.5,97.5,35.7],AE:[51.5,22.6,56.4,26.1],DE:[5.8,47.2,15.1,55.1],BR:[-74,-33.8,-34.7,5.3],AU:[112.9,-43.7,153.7,-10.5],CA:[-141,41.7,-52.6,83.1]};
+const focusName=()=>{const c=curCC||me.country;return CC[c]?CC[c][0]:c};
+async function photon(v,b,box){const r=await fetch('https://photon.komoot.io/api/?limit=10&location_bias_scale=0.6&q='+encodeURIComponent(v)+'&lat='+b.lat+'&lon='+b.lng+(box?'&bbox='+box.join(','):''));const j=await r.json();
+return (j.features||[]).map(x=>{const p=x.properties||{},l=[p.name,p.street?((p.housenumber?p.housenumber+' ':'')+p.street):'',p.district||p.suburb||'',p.city||p.town||p.village||'',p.state||''].filter((t,i,ar)=>t&&ar.indexOf(t)===i).join(', ');return{lat:x.geometry.coordinates[1],lng:x.geometry.coordinates[0],label:l||v,cc:(p.countrycode||'').toUpperCase()}})}
+async function find(q){qnote='';const cc=curCC||me.country,c=map?map.getCenter():null,cn=CEN[me.country]||[0,20],b=pk||ds||(c?{lat:c.lat,lng:c.lng}:{lat:cn[0],lng:cn[1]}),vs=vars(q);
+const tryp=async(list,box)=>{for(const v of list){try{let a=await photon(v,b,box);if(box)a=a.filter(x=>!x.cc||x.cc===cc);if(a.length){if(v.toLowerCase()!==q.trim().toLowerCase())qnote='Showing results for "'+v+'"';return a.slice(0,6)}}catch(e){}}return null};
+let a=await tryp(vs,BBOX[cc]);if(a)return a;
+a=await tryp(vs.slice(0,2),null);if(a){qnote='Nothing found in '+focusName()+'. Showing results elsewhere.';return a}
+try{for(const k of [cc.toLowerCase(),'']){const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=6'+(k?'&countrycodes='+k:'')+'&q='+encodeURIComponent(q));const j=await r.json();if(j.length)return j.map(x=>({lat:+x.lat,lng:+x.lon,label:x.display_name.split(',').slice(0,3).join(',')}))}}catch(e){}
+return[]}
+const sugHtml=()=>(SR.length&&qnote?'<p class="sm">'+esc(qnote)+'</p>':'')+SR.map((x,i)=>`<button type="button" class="opt" style="padding:12px;margin:6px 0" onclick="pickRes(${i})"><span>${esc(x.label)}</span></button>`).join('');
+let qt=null,qid=0;
+function onQ(){clearTimeout(qt);const q=($('q').value||'').trim();f.q=q;if(q.length<3){SR=[];$('sugbox').innerHTML='';return}
+qt=setTimeout(async()=>{const id=++qid,a=await find(q);if(id!==qid)return;SR=a;const bx=$('sugbox');if(bx)bx.innerHTML=sugHtml()+(a.length?'':'<p class="sm">No match. Pan the map to the spot and tap the Set button, or tap the map.</p>')},400)}
+async function doSearch(){const q=($('q').value||'').trim();f.q=q;if(q.length<3){msg='Type at least 3 letters.';return render()}
+msg='Searching...';render();SR=await find(q);msg=SR.length?'':'No match found. Pan the map to the spot and tap the Set button, or tap the map.';render()}
+function pickRes(i){const x=SR[i];qnote='';setPoint(pm,{lat:x.lat,lng:x.lng,label:x.label});SR=[];f.q='';if(pm==='from')pm='to';render()}
+function drawMap(pts){const slot=$('mapslot');if(!slot||typeof L==='undefined')return;
+if(!mapEl){mapEl=document.createElement('div');mapEl.id='mapbox';slot.appendChild(mapEl);map=L.map(mapEl).setView(CEN[me.country]||[0,20],5);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);lay=L.layerGroup().addTo(map);map.on('click',onMap)}else slot.appendChild(mapEl);
+mapEl.classList.toggle('sel',screen==='rHome'&&!R[0]);map.invalidateSize();lay.clearLayers();const b=[];
+const mk=(pt,name,fill,r)=>{if(!pt)return;L.circleMarker([pt.lat,pt.lng],{radius:r,color:'#000',weight:3,fillColor:fill,fillOpacity:1}).bindTooltip(name,{permanent:true,direction:'top'}).addTo(lay);b.push([pt.lat,pt.lng])};
+mk(pts.from,'Pickup','#000',9);mk(pts.to,'Drop-off','#fff',9);mk(pts.car,pts.carName||'Driver','#ffd400',11);
+const key=[screen,pts.rid||'',pts.from&&pts.from.lat,pts.from&&pts.from.lng,pts.to&&pts.to.lat,pts.to&&pts.to.lng].join();
+if(b.length&&key!==mapKey){mapKey=key;map.fitBounds(b,{padding:[40,40],maxZoom:16})}}
+function drawForScreen(){if(!$('mapslot'))return;let pts={};const c=(la,ln)=>la==null?null:{lat:la,lng:ln};
+if(screen==='rHome'){const r=R[0];if(r)pts={from:c(r.pickup_lat,r.pickup_lng),to:c(r.drop_lat,r.drop_lng),car:DL?{lat:DL.lat,lng:DL.lng}:null,rid:r.id};else{pts={from:pk,to:ds};if(!triedGps){triedGps=true;useGps()}}}
+else if(screen==='dHome'&&J)pts={from:c(J.pickup_lat,J.pickup_lng),to:c(J.drop_lat,J.drop_lng),car:myPos,carName:'You',rid:J.id};
+drawMap(pts)}
+function trackSync(){const need=me&&me.role==='driver'&&J&&screen==='dHome';
+if(need&&watchId===null&&navigator.geolocation){watchId=navigator.geolocation.watchPosition(p=>{myPos={lat:p.coords.latitude,lng:p.coords.longitude};gpsErr='';const t=Date.now();if(J&&t-lastPush>5000){lastPush=t;sb.from('driver_locations').upsert({ride_id:J.id,driver_id:me.id,lat:myPos.lat,lng:myPos.lng,updated_at:new Date().toISOString()}).then(()=>{})}drawForScreen()},()=>{gpsErr='Turn on location so the rider can see you.'},{enableHighAccuracy:true,maximumAge:3000,timeout:20000})}
+if(!need&&watchId!==null){navigator.geolocation.clearWatch(watchId);watchId=null;myPos=null}}
+function send(){const o=+$('offer').value;f.offer=$('offer').value;
+if(!pk||!ds||!(o>0)){msg='Set your pickup and destination on the map, and enter a price above 0.';return render()}
+const row={rider_id:me.id,rider_name:me.name,from_place:pk.label,to_place:ds.label,pickup_lat:pk.lat,pickup_lng:pk.lng,drop_lat:ds.lat,drop_lng:ds.lng,rider_offer:o,country:me.country,currency:me.currency};
+pk=null;ds=null;pm='from';f={};run(sb.from('rides').insert(row))}
+const PHONE_DOMAIN='ridego.app';
+let via='phone',RT={},RV=[],MYR=null,TR=null,RS=0,SK=[];
+try{SK=JSON.parse(localStorage.getItem('rg_sk'))||[]}catch(e){}
+const phoneEmail=(c,pd)=>'p'+DIAL[c].replace('+','')+pd+'@'+PHONE_DOMAIN;
+const setVia=v=>{cap();via=v;msg='';render()};
+const rt=id=>{const x=RT[id];return x&&x.n>0?'★ '+x.a+' ('+x.n+')':'New driver'};
+const stars=n=>'★'.repeat(n)+'☆'.repeat(5-n);
+async function loadRider(){RT={};TR=null;const ids=[...new Set(B.map(b=>b.driver_id))];
+await Promise.all(ids.map(async id=>{const r=await sb.rpc('driver_rating',{p_driver:id});const x=(r.data||[])[0];if(x)RT[id]={a:x.avg_stars,n:Number(x.n)}}));
+if(!R[0]){const d=await sb.from('rides').select('*').eq('rider_id',me.id).eq('status','done').order('created_at',{ascending:false}).limit(1);const ride=(d.data||[])[0];
+if(ride){const v=await sb.from('reviews').select('id').eq('ride_id',ride.id).maybeSingle();if(!v.data)TR=ride}}}
+async function loadDriver(){MYR=null;RV=[];const r=await sb.rpc('driver_rating',{p_driver:me.id});const x=(r.data||[])[0];if(x)MYR={a:x.avg_stars,n:Number(x.n)};
+const v=await sb.from('reviews').select('*').eq('driver_id',me.id).order('created_at',{ascending:false}).limit(10);RV=v.data||[]}
+function ratingCard(){if(!TR||SK.includes(TR.id))return '';
+return `<div class="card"><b>How was your ride with ${esc(TR.driver_name)}?</b><div class="seg" style="margin:12px 0">${[1,2,3,4,5].map(n=>`<button class="${RS>=n?'on':''}" onclick="RS=${n};render()">${n}★</button>`).join('')}</div><input id="rvc" type="text" maxlength="300" placeholder="Add a comment (optional)" value="${esc(f.rvc||'')}"><button class="btn" onclick="sendReview()">Submit rating</button><p class="c"><button class="link" onclick="skipReview()">Skip</button></p></div>`}
+function ratingBox(){return `<div class="card"><span class="sm">Your rating</span><div class="big">${MYR&&MYR.n>0?'★ '+MYR.a+' <span class="sm">('+MYR.n+' rated rides)</span>':'No ratings yet'}</div>${RV.map(v=>`<div class="bub" style="max-width:100%"><b>${stars(v.stars)}</b>${v.comment?'<br>'+esc(v.comment):''}<div class="sm">${esc((v.rider_name||'Rider').split(' ')[0])}</div></div>`).join('')}</div>`}
+function sendReview(){if(!RS){msg='Choose 1 to 5 stars.';return render()}const c=(f.rvc||'').trim().slice(0,300)||null,st=RS;RS=0;f.rvc='';
+run(sb.from('reviews').insert({ride_id:TR.id,rider_id:me.id,driver_id:TR.driver_id,rider_name:me.name,stars:st,comment:c}))}
+function skipReview(){SK.push(TR.id);try{localStorage.setItem('rg_sk',JSON.stringify(SK))}catch(e){}RS=0;render()}
+const chatBox=id=>`<h2>Chat</h2><div class="chat" id="chat">${MS.length?MS.map(m=>`<div class="bub ${m.sender_id===me.id?'me':''}">${esc(m.body)}<div class="sm" style="color:inherit;opacity:.7">${esc(m.sender_name)}</div></div>`).join(''):'<p class="sm">Say hello to your '+(me.role==='rider'?'driver':'rider')+'.</p>'}</div><div class="gap"><input id="chatin" type="text" maxlength="500" placeholder="Type a message"><button class="btn s" onclick="sendMsg('${id}')">Send</button></div>`;
+function sendMsg(id){const b=$('chatin').value.trim();if(!b)return;run(sb.from('messages').insert({ride_id:id,sender_id:me.id,sender_name:me.name,body:b}))}
+const accOffer=r=>run(sb.rpc('take_ride',{p_ride:r.id,p_price:r.rider_offer}));
+function bidUp(rid){const r=R.find(x=>x.id===rid),a=+$('b_'+rid).value;if(!(a>r.rider_offer)){msg='Bid must be above '+money(r.rider_offer,r.currency);return render()}
+run(sb.from('bids').upsert({ride_id:rid,driver_id:me.id,driver_name:me.name,amount:a,driver_earnings:+(a*.85).toFixed(2),counter:null},{onConflict:'ride_id,driver_id'}))}
+const rAcc=b=>run(sb.from('rides').update({status:'accepted',final_price:b.amount,commission:+(b.amount*.15).toFixed(2),driver_id:b.driver_id,driver_name:b.driver_name}).eq('id',b.ride_id).eq('status','open'));
+function rCtr(bid){const b=B.find(x=>x.id===bid),a=+$('c_'+bid).value;if(!(a>0&&a<b.amount)){msg='Counter must be below the bid.';return render()}run(sb.from('bids').update({counter:a}).eq('id',bid))}
+const dCtr=(rid,price)=>run(sb.rpc('take_ride',{p_ride:rid,p_price:price}));
+const setS=(id,s)=>run(sb.from('rides').update({status:s}).eq('id',id));
+const bi=i=>id=>B.find(x=>x.id===id);
+function render(){{const o=$('offer');if(o)f.offer=o.value;const q=$('q');if(q)f.q=q.value;const rc=$('rvc');if(rc)f.rvc=rc.value}let h='';const E=msg?`<p class="err">${esc(msg)}</p>`:'';
+if(screen==='welcome'){h=`<div class="brand">RideGo</div><p class="sub">Name your price. Ride anywhere.</p><button class="opt" onclick="role='rider';mode='up';go('reg')"><b>I am a Rider</b><span>Book trips and suggest your price</span></button><button class="opt" onclick="role='driver';mode='up';go('reg')"><b>I am a Driver</b><span>Earn money driving riders</span></button><p class="c"><button class="link" onclick="mode='in';go('reg')">I already have an account</button></p>${E}`}
+else if(screen==='reg'){const up=mode==='up',c=f.cc||detect(),r=role==='driver'?'Driver':'Rider',ph=via==='phone';
+h=`<button class="back" onclick="go('welcome')">&larr; Back</button><h1>${up?r+' sign-up':'Sign in'}</h1><p class="sub">${up?'Your country and currency are detected from your device.':'Welcome back.'}</p><div class="seg" style="margin-bottom:6px"><button class="${ph?'on':''}" onclick="setVia('phone')">Phone number</button><button class="${ph?'':'on'}" onclick="setVia('email')">Email</button></div>`
++(up?`<label>I am a</label><div class="seg"><button class="${r==='Rider'?'on':''}" onclick="setRole('rider')">Rider</button><button class="${r==='Driver'?'on':''}" onclick="setRole('driver')">Driver</button></div>`+fld('n','Full name','Your name'):'')
++((ph||up)?`<label for="cc">Country</label><select id="cc" onchange="f.cc=this.value;$('dial').textContent=DIAL[this.value];if($('cur'))$('cur').textContent='Currency: '+CC[this.value][1]">${Object.keys(CC).map(k=>`<option value="${k}" ${k===c?'selected':''}>${CC[k][0]} (${DIAL[k]})</option>`).join('')}</select>`+(up?`<p class="sm" id="cur">Currency: ${CC[c][1]}</p>`:'')+`<label for="p">Phone number</label><div class="ph"><span class="dial" id="dial">${DIAL[c]}</span><input id="p" type="tel" inputmode="tel" placeholder="71 000 0000" value="${esc(f.p||'')}" autocomplete="off"></div>`:'')
++(ph?'':fld('e','Email','you@example.com','email'))
++fld('pw',up?'Create a password':'Password','6+ characters','password')
++E+`<button class="btn" onclick="authGo()">${up?'Create '+r+' Account':'Sign in'}</button><p class="c"><button class="link" onclick="cap();mode=mode==='up'?'in':'up';role=role||'rider';go('reg')">${up?'I already have an account':'Create a new account'}</button></p>${!up&&!ph?`<p class="c"><button class="link" onclick="cap();go('forgot')">Forgot password?</button></p>`:''}${!up&&ph?'<p class="sm c">Forgot your password? Please contact RideGo support.</p>':''}`}
+else if(screen==='forgot'){h=`<button class="back" onclick="cap();mode='in';go('reg')">&larr; Back</button><h1>Reset password</h1><p class="sub">Enter your email and we will send you a link to set a new password.</p>${fld('e','Email','you@example.com','email')}${E}<button class="btn" onclick="sendReset()">Send reset link</button>`}
+else if(screen==='newpw'){h=`<h1>New password</h1><p class="sub">Choose a new password for your account.</p>${fld('pw','New password','6+ characters','password')}${E}<button class="btn" onclick="setPw()">Save password</button>`}
+else if(screen==='complete'){const c=f.cc||detect(),r=role==='driver'?'Driver':'Rider';
+h=`<h1>Finish your profile</h1><p class="sub">Your account is confirmed. Tell us a little more to continue.</p><label>I am a</label><div class="seg"><button class="${r==='Rider'?'on':''}" onclick="setRole('rider')">Rider</button><button class="${r==='Driver'?'on':''}" onclick="setRole('driver')">Driver</button></div>`+fld('n','Full name','Your name')+`<label for="cc">Country</label><select id="cc" onchange="f.cc=this.value;$('dial').textContent=DIAL[this.value]">${Object.keys(CC).map(k=>`<option value="${k}" ${k===c?'selected':''}>${CC[k][0]} (${DIAL[k]})</option>`).join('')}</select><label for="p">Phone number</label><div class="ph"><span class="dial" id="dial">${DIAL[c]}</span><input id="p" type="tel" inputmode="tel" placeholder="71 000 0000" value="${esc(f.p||'')}" autocomplete="off"></div>${E}<button class="btn" onclick="finish()">Continue</button><p class="c"><button class="link" onclick="signOut()">Sign out</button></p>`}
+else if(screen==='otp'){h=`<button class="back" onclick="go('reg')">&larr; Back</button><h1>Enter code</h1><p class="sub">We sent a code by SMS to ${esc(f.phone)}.</p>${fld('code','6-digit code','123456','tel')}${E}<button class="btn" onclick="verify()">Verify and continue</button><p class="c"><button class="link" onclick="authGo()">Resend code</button></p>`}
+else if(screen==='rHome'){const r=R[0];h=`<h1>Where to?</h1><p class="sub">${esc(me.name.split(' ')[0])}, prices are in ${me.currency}.</p>`;
+if(r){h+=`<div class="card"><div class="row"><span class="tag">${r.status==='accepted'?'Driver on the way':'Waiting for bids'}</span><span class="big">${money(r.final_price||r.rider_offer,r.currency)}</span></div><p><b>${esc(r.from_place)}</b><br><span class="sm">to</span> <b>${esc(r.to_place)}</b></p>${r.status==='accepted'?`<p class="sm">Driver: ${esc(r.driver_name)}</p>`:''}</div>`;
+h+='<div id="mapslot"></div>';if(r.status==='open'){h+=`<h2>Negotiation</h2><div class="bub me">You offered ${money(r.rider_offer,r.currency)}</div>`+(B.length?B.map(b=>`<div class="bub">${esc(b.driver_name)} <span class="sm" style="color:inherit">${rt(b.driver_id)}</span> bids ${money(b.amount,r.currency)}</div>${b.counter?`<div class="bub me">You countered ${money(b.counter,r.currency)}</div>`:''}<div class="gap"><button class="btn s" onclick="rAcc(B.find(x=>x.id==='${b.id}'))">Accept ${money(b.amount,r.currency)}</button><input id="c_${b.id}" type="number" min="1" placeholder="Counter"><button class="btn s o" onclick="rCtr('${b.id}')">Counter</button></div>`).join(''):'<p class="sm">No bids yet. Drivers nearby can accept or bid higher.</p>')}
+if(r.status==='accepted')h+=`<p class="sm">Payment: cash to the driver.</p>`+chatBox(r.id);
+h+=`${E}<button class="btn o" onclick="setS('${r.id}','cancelled')">Cancel ride</button>`}
+else h+=ratingCard()+`<div id="mapslot"></div>${gpsErr?`<p class="err">${esc(gpsErr)}</p>`:''}<div class="seg" style="margin:10px 0"><button class="${pm==='from'?'on':''}" onclick="pm='from';render()">Pickup</button><button class="${pm==='to'?'on':''}" onclick="pm='to';render()">Destination</button></div><p class="sm" style="margin:0 0 8px">Tap the map to set your <b>${pm==='from'?'pickup':'destination'}</b>, search, or use your location.</p><div class="gap"><button class="btn s" onclick="useGps()">Use my location</button><button class="btn s o" onclick="setHere()">Set ${pm==='from'?'pickup':'destination'} at map centre</button></div><p class="sm" style="margin:10px 0 0">Searching in <b>${esc(focusName())}</b></p><div class="gap" style="margin-top:6px"><input id="q" type="text" placeholder="Search a place or address" value="${esc(f.q||'')}" oninput="onQ()" onkeydown="if(event.key==='Enter')doSearch()"><button class="btn s o" onclick="doSearch()">Search</button></div><div id="sugbox">${sugHtml()}</div><div class="card" style="margin-top:12px"><p class="sm" style="margin:0">Pickup</p><b>${pk?esc(pk.label):'Not set'}</b><p class="sm" style="margin:8px 0 0">Destination</p><b>${ds?esc(ds.label):'Not set'}</b></div>${fld('offer','Suggest your price ('+me.currency+')','e.g. 80','number')}<label>Pay with</label><div class="seg"><button class="on">Cash</button><button disabled style="opacity:.45">Card (coming soon)</button></div>${E}<button class="btn" onclick="send()">Send Request</button>`;
+h+=`<p class="c"><button class="link" onclick="signOut()">Sign out</button></p>`}
+else if(screen==='dHome'){h=`<h1>Ride requests</h1><p class="sub">Open requests in ${CC[me.country][0]} (${me.currency}).</p>`+ratingBox();
+if(J)h+='<div id="mapslot"></div>';
+if(J)h+=`<div class="card"><div class="row"><span class="tag">In progress</span><span class="big">${money(J.final_price,J.currency)}</span></div><p><b>${esc(J.from_place)}</b><br><span class="sm">to</span> <b>${esc(J.to_place)}</b></p><p class="sm">Your earnings ${money(J.final_price*.85,J.currency)}. RideGo fee ${money(J.commission,J.currency)}.</p><p class="sm"><b>Cash ride:</b> collect ${money(J.final_price,J.currency)} from the rider. The RideGo fee of ${money(J.commission,J.currency)} is owed to RideGo.</p>${gpsErr?`<p class="err">${esc(gpsErr)}</p>`:'<p class="sm">Your location is shared with the rider while this page is open.</p>'}${J.pickup_lat!=null?`<div class="gap"><a class="btn s o" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${J.pickup_lat},${J.pickup_lng}">Navigate to pickup</a><a class="btn s o" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${J.drop_lat},${J.drop_lng}">Navigate to drop-off</a></div>`:''}<button class="btn" style="margin-top:8px" onclick="setS('${J.id}','done')">Complete ride</button></div>`+chatBox(J.id);
+h+=E+(R.length?R.map(r=>{const b=MB.find(x=>x.ride_id===r.id);return`<div class="card"><div class="row"><b>${esc(r.from_place)}</b><span class="sm">to ${esc(r.to_place)}</span></div><p class="sm" style="margin:6px 0">Rider offer</p><div class="big">${money(r.rider_offer,r.currency)}</div><p style="margin:8px 0 0"><b>Your earnings ${money(r.rider_offer*.85,r.currency)}</b><br><span class="sm">RideGo fee (15%) ${money(r.rider_offer*.15,r.currency)}</span></p>${b?`<div class="bub me">Your bid ${money(b.amount,r.currency)}</div>${b.counter?`<div class="bub">Rider countered ${money(b.counter,r.currency)}</div>`:''}`:''}<div class="gap">${J?'':`<button class="btn s" onclick="accOffer(R.find(x=>x.id==='${r.id}'))">Accept</button>${b&&b.counter?`<button class="btn s" onclick="dCtr('${r.id}',${b.counter})">Accept ${money(b.counter,r.currency)}</button>`:''}`}<input id="b_${r.id}" type="number" min="1" placeholder="Your bid"><button class="btn s o" onclick="bidUp('${r.id}')">Bid Higher</button></div></div>`}).join(''):'<p class="sm">No requests right now. This page checks for new ones automatically.</p>')+`<p class="c"><button class="link" onclick="signOut()">Sign out</button></p>`}
+$('app').innerHTML=h;{const ch=$('chat');if(ch)ch.scrollTop=ch.scrollHeight}drawForScreen();trackSync();
+['from','to'].forEach(id=>{const e=$(id);if(e){e.addEventListener('input',()=>sugg(id));e.addEventListener('focus',()=>sugg(id))}})}
+setInterval(async()=>{if(!me||busy||(screen!=='rHome'&&screen!=='dHome')||(screen==='rHome'&&!R[0]))return;const a=document.activeElement,t=a&&a.tagName,chat=a&&a.id==='chatin';if(!chat&&(t==='INPUT'||t==='SELECT'))return;const keep=chat?a.value:null;busy=true;try{await refresh();render();if(chat){const c=$('chatin');if(c){c.value=keep;c.focus()}}}catch(e){}busy=false},4000);
+const REC=/type=recovery/.test(location.hash+location.search);
+sb.auth.onAuthStateChange(ev=>{if(ev==='PASSWORD_RECOVERY'){screen='newpw';render()}});
+(async()=>{if(REC)screen='newpw';render();try{const{data:{session}}=await sb.auth.getSession();if(session&&!REC)await start(session.user)}catch(e){}})();
+</script></body></html>
